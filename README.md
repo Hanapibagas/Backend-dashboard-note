@@ -186,6 +186,80 @@ docker build -t auth-service .
 docker run -p 8080:8080 --env-file cmd/.env auth-service
 ```
 
+### 🔄 CI/CD Pipeline
+
+This project uses **GitHub Actions** for continuous integration and continuous deployment.
+
+#### Pipeline Overview
+
+**CI Workflow** `.github/workflows/ci.yml`
+- ✅ Automated testing on every push & PR
+- ✅ Code quality checks (go vet, go fmt, go mod tidy)
+- ✅ Build verification
+- ✅ Security scanning with Gosec
+- ✅ Coverage report generation
+
+**Docker Workflow** `.github/workflows/docker-build-push.yml`
+- ✅ Multi-architecture Docker builds (linux/amd64, linux/arm64)
+- ✅ Automated pushes to Docker Hub
+- ✅ Container security scanning with Trivy
+- ✅ Layer caching for faster builds
+
+#### Setup Instructions
+
+**1. Docker Hub Secrets**
+
+Add these secrets to your GitHub repository (`Settings` → `Secrets and variables` → `Actions`):
+
+| Secret Name | Description | Example |
+|-------------|-------------|---------|
+| `DOCKER_HUB_USERNAME` | Your Docker Hub username | `hanapi` |
+| `DOCKER_HUB_TOKEN` | Docker Hub access token | `dckr_xxxxx...` |
+
+To create a Docker Hub token:
+- Go to [Docker Hub Settings](https://hub.docker.com/settings/security)
+- Click "New Access Token"
+- Give it a descriptive name (e.g., `github-actions`)
+- Select "Read & Write" permissions
+- Copy the token and add it to GitHub secrets
+
+**2. Workflow Triggers**
+
+The CI/CD pipelines run automatically on:
+- Push to `main` or `develop` branches
+- Pull requests to `main` or `develop` branches
+- Manual trigger via GitHub Actions UI
+
+**3. Docker Image Naming**
+
+Images are tagged as:
+- `hanapi/auth-service:latest` (main branch only)
+- `hanapi/auth-service:develop` (develop branch)
+- `hanapi/auth-service:main-<sha>` (specific commits)
+- `hanapi/auth-service:pr-<number>` (pull requests)
+
+#### Pipeline Status
+
+Check pipeline status in GitHub Actions tab:
+- 📊 Test results and coverage reports
+- 🔍 Security scan findings
+- 🐳 Docker image build status
+- 📦 Available image tags
+
+#### Local Testing
+
+```bash
+# Test CI pipeline locally
+cd auth
+go test -v -race ./...
+go vet ./...
+go fmt ./...
+
+# Build Docker image locally
+docker build -t hanapi/auth-service:latest .
+docker run -p 8080:8080 --env-file cmd/.env hanapi/auth-service:latest
+```
+
 ### 📖 Documentation
 
 For complete documentation, see [auth/README.md](auth/README.md)
