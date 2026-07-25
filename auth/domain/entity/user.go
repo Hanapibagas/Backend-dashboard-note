@@ -1,30 +1,27 @@
 package entity
 
 import (
+	"auth/domain/valueobject"
 	"time"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // User represents the user entity in the domain layer
+// This is a Rich Domain Model with behavior and value objects
 type User struct {
 	ID           uuid.UUID
-	Email        string
-	PasswordHash string
+	Email        *valueobject.Email          // Value Object - Ubiquitous Language
+	PasswordHash *valueobject.HashedPassword // Value Object - SRP: Hashing in VO, not Entity
 	FullName     string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
 
-// NewUser creates a new User entity with hashed password
-func NewUser(email string, password string, fullName string) (*User, error) {
-	// Hash password as part of entity creation
-	hashedPassword, err := hashPassword(password)
-	if err != nil {
-		return nil, err
-	}
-
+// NewUser creates a new User entity with value objects
+// This is the SRP-correct approach: Entity focuses on User data and behavior
+// Password hashing is handled by Password value object
+func NewUser(email *valueobject.Email, hashedPassword *valueobject.HashedPassword, fullName string) (*User, error) {
 	user := &User{
 		ID:           uuid.New(),
 		Email:        email,
@@ -37,35 +34,23 @@ func NewUser(email string, password string, fullName string) (*User, error) {
 	return user, nil
 }
 
-// hashPassword hashes a password using bcrypt
-func hashPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hashedPassword), nil
-}
-
 // UpdateFullName updates the user's full name
 func (u *User) UpdateFullName(fullName string) {
 	u.FullName = fullName
 	u.UpdatedAt = time.Now()
 }
 
-// UpdatePassword updates the user's password with hashing
-func (u *User) UpdatePassword(password string) error {
-	hashedPassword, err := hashPassword(password)
-	if err != nil {
-		return err
-	}
+// UpdatePassword updates the user's password with new hashed password
+// This method accepts a HashedPassword VO (hashing already done by Password VO)
+func (u *User) UpdatePassword(hashedPassword *valueobject.HashedPassword) {
 	u.PasswordHash = hashedPassword
 	u.UpdatedAt = time.Now()
-	return nil
 }
 
 // VerifyPassword verifies if the provided password matches the stored hash
-func (u *User) VerifyPassword(password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
+// Delegates to HashedPassword VO (SRP: VO handles password verification)
+func (u *User) VerifyPassword(plainPassword string) error {
+	return u.PasswordHash.VerifyPassword(plainPassword)
 }
 
 // GetID returns the user ID
@@ -73,9 +58,28 @@ func (u *User) GetID() uuid.UUID {
 	return u.ID
 }
 
-// GetEmail returns the user email
+// GetEmail returns the user email as string
+// Convenience method for infrastructure layer
 func (u *User) GetEmail() string {
+	return u.Email.String()
+}
+
+// GetEmailVO returns the user Email value object
+// Preferred method for domain layer operations
+func (u *User) GetEmailVO() *valueobject.Email {
 	return u.Email
+}
+
+// GetPasswordHash returns the hashed password as string
+// Convenience method for infrastructure layer (e.g., saving to DB)
+func (u *User) GetPasswordHash() string {
+	return u.PasswordHash.String()
+}
+
+// GetPasswordHashVO returns the HashedPassword value object
+// Preferred method for domain layer operations
+func (u *User) GetPasswordHashVO() *valueobject.HashedPassword {
+	return u.PasswordHash
 }
 
 // GetFullName returns the user full name
@@ -86,4 +90,9 @@ func (u *User) GetFullName() string {
 // GetCreatedAt returns the user creation time
 func (u *User) GetCreatedAt() time.Time {
 	return u.CreatedAt
+}
+
+// GetUpdatedAt returns the last update time
+func (u *User) GetUpdatedAt() time.Time {
+	return u.UpdatedAt
 }

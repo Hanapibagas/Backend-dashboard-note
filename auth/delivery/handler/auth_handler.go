@@ -4,38 +4,36 @@ import (
 	"auth/application/usecase"
 	errorHandler "auth/pkg/error"
 	"auth/pkg/response"
-	"auth/pkg/utils"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 // AuthHandler handles HTTP requests for authentication
+// SRP: Handler only handles HTTP concerns (binding, response formatting)
 type AuthHandler struct {
-	authUsecase  usecase.AuthUsecase
-	errorHandler *errorHandler.ErrorHandler
-	validator    *validator.Validate
+	authUsecase usecase.AuthUsecase
+	errHandler *errorHandler.ErrorHandler
 }
 
 // NewAuthHandler creates a new AuthHandler instance
 func NewAuthHandler(authUsecase usecase.AuthUsecase, errHandler *errorHandler.ErrorHandler) *AuthHandler {
 	return &AuthHandler{
-		authUsecase:  authUsecase,
-		errorHandler: errHandler,
-		validator:    validator.New(),
+		authUsecase: authUsecase,
+		errHandler: errHandler,
 	}
 }
 
 // RegisterRequest represents the HTTP request body for registration
+// SRP: This struct only handles HTTP binding (basic format validation)
 type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
-	FullName string `json:"full_name" binding:"required"`
+	Email    string `json:"email" binding:"required"`             // Basic: required field
+	Password string `json:"password" binding:"required"`          // Basic: required field
+	FullName string `json:"full_name" binding:"required"`          // Basic: required field
 }
 
 // LoginRequest represents the HTTP request body for login
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
+	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -45,23 +43,17 @@ type LogoutRequest struct {
 }
 
 // RegisterHandler handles user registration
+// SRP: Only handles HTTP concerns, delegates all business logic to domain
 func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 	var req RegisterRequest
 
-	// Bind and validate JSON request
+	// Bind and validate JSON request (basic format validation only)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Invalid request format")
 		return
 	}
 
-	// Validate using validator
-	if err := h.validator.Struct(&req); err != nil {
-		validationErrors := h.formatValidationErrors(err)
-		response.ValidationError(c, validationErrors)
-		return
-	}
-
-	// Call usecase
+	// Call usecase (domain handles all business validation)
 	usecaseReq := &usecase.RegisterRequest{
 		Email:    req.Email,
 		Password: req.Password,
@@ -70,7 +62,7 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 
 	usecaseResp, err := h.authUsecase.Register(usecaseReq)
 	if err != nil {
-		h.errorHandler.HandleRegisterError(err, c)
+		h.errHandler.HandleError(c, err)
 		return
 	}
 
@@ -86,23 +78,17 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 }
 
 // LoginHandler handles user login
+// SRP: Only handles HTTP concerns, delegates all business logic to domain
 func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	var req LoginRequest
 
-	// Bind and validate JSON request
+	// Bind and validate JSON request (basic format validation only)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Invalid request format")
 		return
 	}
 
-	// Validate using validator
-	if err := h.validator.Struct(&req); err != nil {
-		validationErrors := h.formatValidationErrors(err)
-		response.ValidationError(c, validationErrors)
-		return
-	}
-
-	// Call usecase
+	// Call usecase (domain handles all business validation)
 	usecaseReq := &usecase.LoginRequest{
 		Email:    req.Email,
 		Password: req.Password,
@@ -110,7 +96,7 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 
 	usecaseResp, err := h.authUsecase.Login(usecaseReq)
 	if err != nil {
-		h.errorHandler.HandleLoginError(err, c)
+		h.errHandler.HandleError(c, err)
 		return
 	}
 
@@ -122,6 +108,7 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 }
 
 // LogoutHandler handles user logout
+// SRP: Only handles HTTP concerns, delegates all business logic to domain
 func (h *AuthHandler) LogoutHandler(c *gin.Context) {
 	var req LogoutRequest
 
@@ -139,42 +126,10 @@ func (h *AuthHandler) LogoutHandler(c *gin.Context) {
 
 	err := h.authUsecase.Logout(usecaseReq)
 	if err != nil {
-		h.errorHandler.HandleLogoutError(err, c)
+		h.errHandler.HandleError(c, err)
 		return
 	}
 
 	// Return success response
 	response.OK(c, "Logged out successfully", nil)
-}
-
-// formatValidationErrors converts validator errors to our ValidationError format
-func (h *AuthHandler) formatValidationErrors(err error) []utils.ValidationError {
-	var validationErrors []utils.ValidationError
-
-	if validationErrs, ok := err.(validator.ValidationErrors); ok {
-		for _, e := range validationErrs {
-			field := e.Field()
-			var message string
-
-			switch e.Tag() {
-			case "required":
-				message = field + " is required"
-			case "email":
-				message = field + " must be a valid email address"
-			case "min":
-				message = field + " must be at least " + e.Param() + " characters"
-			case "max":
-				message = field + " must be at most " + e.Param() + " characters"
-			default:
-				message = field + " is invalid"
-			}
-
-			validationErrors = append(validationErrors, utils.ValidationError{
-				Field:   field,
-				Message: message,
-			})
-		}
-	}
-
-	return validationErrors
 }

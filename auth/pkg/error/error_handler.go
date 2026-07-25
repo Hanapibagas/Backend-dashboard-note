@@ -1,8 +1,7 @@
 package error
 
 import (
-	"auth/application/usecase"
-	"auth/domain/valueobject"
+	errorDomain "auth/domain/errors"
 	"errors"
 	"net/http"
 
@@ -10,6 +9,7 @@ import (
 )
 
 // ErrorHandler handles application errors and converts them to HTTP responses
+// This is the SRP-correct approach: Single responsibility for error translation
 type ErrorHandler struct{}
 
 // NewErrorHandler creates a new ErrorHandler instance
@@ -17,135 +17,89 @@ func NewErrorHandler() *ErrorHandler {
 	return &ErrorHandler{}
 }
 
-// HandleRegisterError handles errors from the registration usecase
-func (eh *ErrorHandler) HandleRegisterError(err error, c *gin.Context) {
+// HandleError is a generic error handler that handles all domain errors
+// This method uses errors.Is() for type-safe error checking (SRP & DDD)
+func (eh *ErrorHandler) HandleError(c *gin.Context, err error) {
 	if err == nil {
 		return
 	}
 
-	// Handle specific usecase errors
-	if err == usecase.ErrEmailAlreadyExists {
+	// Handle domain errors using errors.Is() for type-safe checking
+	// This is the SRP-correct approach: No string comparison
+
+	// Check for specific error types
+	switch {
+	case errors.Is(err, errorDomain.ErrEmailAlreadyExists):
 		c.JSON(http.StatusConflict, gin.H{
 			"success": false,
 			"message": "Email already exists",
 		})
 		return
-	}
 
-	// Handle email validation errors
-	if err == valueobject.ErrInvalidEmailFormat || err == valueobject.ErrEmailEmpty {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
-	}
-
-	// Handle password validation errors
-	if err == valueobject.ErrPasswordTooShort || err == valueobject.ErrPasswordMissingUppercase ||
-		err == valueobject.ErrPasswordMissingLowercase || err == valueobject.ErrPasswordMissingNumber ||
-		err == valueobject.ErrPasswordEmpty {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
-	}
-
-	// Generic error
-	c.JSON(http.StatusInternalServerError, gin.H{
-		"success": false,
-		"message": "Failed to register user",
-	})
-}
-
-// HandleLoginError handles errors from the login usecase
-func (eh *ErrorHandler) HandleLoginError(err error, c *gin.Context) {
-	if err == nil {
-		return
-	}
-
-	// Handle specific usecase errors
-	if err == usecase.ErrInvalidCredentials {
+	case errors.Is(err, errorDomain.ErrInvalidCredentials):
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
 			"message": "Invalid email or password",
 		})
 		return
-	}
 
-	// Handle email validation errors
-	if err == valueobject.ErrInvalidEmailFormat || err == valueobject.ErrEmailEmpty {
+	case errors.Is(err, errorDomain.ErrUserNotFound):
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"message": "User not found",
+		})
+		return
+
+	case errors.Is(err, errorDomain.ErrInvalidEmailFormat),
+		errors.Is(err, errorDomain.ErrEmailEmpty):
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"message": err.Error(),
 		})
 		return
-	}
 
-	// Generic error
-	c.JSON(http.StatusInternalServerError, gin.H{
-		"success": false,
-		"message": "Failed to login",
-	})
+	case errors.Is(err, errorDomain.ErrPasswordEmpty),
+		errors.Is(err, errorDomain.ErrPasswordTooShort),
+		errors.Is(err, errorDomain.ErrPasswordMissingUppercase),
+		errors.Is(err, errorDomain.ErrPasswordMissingLowercase),
+		errors.Is(err, errorDomain.ErrPasswordMissingNumber):
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+
+	case errors.Is(err, errorDomain.ErrPasswordMismatch):
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "Invalid password",
+		})
+		return
+
+	default:
+		// Generic error for unknown errors
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Internal server error",
+		})
+		return
+	}
+}
+
+// HandleRegisterError handles errors from the registration usecase
+// This method is kept for backward compatibility but delegates to HandleError
+func (eh *ErrorHandler) HandleRegisterError(err error, c *gin.Context) {
+	eh.HandleError(c, err)
+}
+
+// HandleLoginError handles errors from the login usecase
+// This method is kept for backward compatibility but delegates to HandleError
+func (eh *ErrorHandler) HandleLoginError(err error, c *gin.Context) {
+	eh.HandleError(c, err)
 }
 
 // HandleLogoutError handles errors from the logout usecase
+// This method is kept for backward compatibility but delegates to HandleError
 func (eh *ErrorHandler) HandleLogoutError(err error, c *gin.Context) {
-	if err == nil {
-		return
-	}
-
-	c.JSON(http.StatusInternalServerError, gin.H{
-		"success": false,
-		"message": "Failed to logout",
-	})
-}
-
-// IsValidationError checks if an error is a validation error
-func (eh *ErrorHandler) IsValidationError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	if err == valueobject.ErrInvalidEmailFormat || err == valueobject.ErrEmailEmpty ||
-		err == valueobject.ErrPasswordTooShort || err == valueobject.ErrPasswordMissingUppercase ||
-		err == valueobject.ErrPasswordMissingLowercase || err == valueobject.ErrPasswordMissingNumber ||
-		err == valueobject.ErrPasswordEmpty {
-		return true
-	}
-
-	return false
-}
-
-// GetErrorMessage extracts the error message from an error
-func (eh *ErrorHandler) GetErrorMessage(err error) string {
-	if err == nil {
-		return ""
-	}
-
-	return err.Error()
-}
-
-// IsConflictError checks if an error is a conflict error
-func (eh *ErrorHandler) IsConflictError(err error) bool {
-	return err == usecase.ErrEmailAlreadyExists
-}
-
-// IsUnauthorizedError checks if an error is an unauthorized error
-func (eh *ErrorHandler) IsUnauthorizedError(err error) bool {
-	return err == usecase.ErrInvalidCredentials
-}
-
-// IsNotFoundError checks if an error is a not found error
-func (eh *ErrorHandler) IsNotFoundError(err error) bool {
-	return err == usecase.ErrUserNotFound
-}
-
-// WrapError wraps an error with additional context
-func (eh *ErrorHandler) WrapError(err error, message string) error {
-	if err == nil {
-		return nil
-	}
-	return errors.New(message + ": " + err.Error())
+	eh.HandleError(c, err)
 }

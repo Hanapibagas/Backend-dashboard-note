@@ -22,29 +22,37 @@ type ErrorResponse struct {
 	Details any    `json:"details,omitempty"`
 }
 
-// Success sends a successful response with data
-func Success(c *gin.Context, statusCode int, message string, data interface{}) {
-	c.JSON(statusCode, Response{
+// OK sends a 200 OK response
+func OK(c *gin.Context, message string, data interface{}) {
+	c.JSON(http.StatusOK, Response{
 		Success: true,
 		Message: message,
 		Data:    data,
 	})
 }
 
-// Error sends an error response
-func Error(c *gin.Context, statusCode int, message string) {
-	c.JSON(statusCode, Response{
+// Created sends a 201 Created response
+func Created(c *gin.Context, message string, data interface{}) {
+	c.JSON(http.StatusCreated, Response{
+		Success: true,
+		Message: message,
+		Data:    data,
+	})
+}
+
+// BadRequest sends a 400 Bad Request response
+func BadRequest(c *gin.Context, message string) {
+	c.JSON(http.StatusBadRequest, Response{
 		Success: false,
 		Message: message,
 	})
 }
 
-// ErrorWithData sends an error response with additional error data
-func ErrorWithData(c *gin.Context, statusCode int, message string, errData interface{}) {
-	c.JSON(statusCode, Response{
+// Unauthorized sends a 401 Unauthorized response
+func Unauthorized(c *gin.Context, message string) {
+	c.JSON(http.StatusUnauthorized, Response{
 		Success: false,
 		Message: message,
-		Error:   errData,
 	})
 }
 
@@ -53,64 +61,6 @@ func ValidationError(c *gin.Context, errors []utils.ValidationError) {
 	c.JSON(http.StatusBadRequest, Response{
 		Success: false,
 		Message: "Validation failed",
-		Error: ErrorResponse{
-			Code:    "VALIDATION_ERROR",
-			Message: utils.FormatValidationErrors(errors),
-			Details: errors,
-		},
-	})
-}
-
-// Created sends a 201 Created response
-func Created(c *gin.Context, message string, data interface{}) {
-	Success(c, http.StatusCreated, message, data)
-}
-
-// OK sends a 200 OK response
-func OK(c *gin.Context, message string, data interface{}) {
-	Success(c, http.StatusOK, message, data)
-}
-
-// BadRequest sends a 400 Bad Request response
-func BadRequest(c *gin.Context, message string) {
-	Error(c, http.StatusBadRequest, message)
-}
-
-// Unauthorized sends a 401 Unauthorized response
-func Unauthorized(c *gin.Context, message string) {
-	Error(c, http.StatusUnauthorized, message)
-}
-
-// Forbidden sends a 403 Forbidden response
-func Forbidden(c *gin.Context, message string) {
-	Error(c, http.StatusForbidden, message)
-}
-
-// NotFound sends a 404 Not Found response
-func NotFound(c *gin.Context, message string) {
-	Error(c, http.StatusNotFound, message)
-}
-
-// Conflict sends a 409 Conflict response
-func Conflict(c *gin.Context, message string) {
-	Error(c, http.StatusConflict, message)
-}
-
-// InternalServerError sends a 500 Internal Server Error response
-func InternalServerError(c *gin.Context, message string) {
-	Error(c, http.StatusInternalServerError, message)
-}
-
-// UnauthorizedWithMessage sends a 401 response with custom message
-func UnauthorizedWithMessage(c *gin.Context, message string) {
-	Error(c, http.StatusUnauthorized, message)
-}
-
-// ValidationErrorWithMessage sends a validation error with custom message
-func ValidationErrorWithMessage(c *gin.Context, message string, errors []utils.ValidationError) {
-	c.JSON(http.StatusBadRequest, Response{
-		Success: false,
-		Message: message,
 		Error: ErrorResponse{
 			Code:    "VALIDATION_ERROR",
 			Message: utils.FormatValidationErrors(errors),

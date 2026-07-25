@@ -2,11 +2,12 @@ package repository
 
 import (
 	"auth/domain/entity"
+	"auth/domain/errors"
 	"auth/domain/repository"
+	"auth/domain/valueobject"
 	"auth/infrastructure/database"
 	"auth/infrastructure/database/model"
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +32,7 @@ func (r *userRepositoryImpl) Create(user *entity.User) error {
 		VALUES (?, ?, ?, ?, ?, ?)
 	`
 
+	// Use FromDomainUser to extract primitives from value objects
 	userModel := model.FromDomainUser(user)
 	userModel.CreatedAt = time.Now()
 	userModel.UpdatedAt = time.Now()
@@ -45,14 +47,14 @@ func (r *userRepositoryImpl) Create(user *entity.User) error {
 	)
 
 	if err != nil {
-		return fmt.Errorf("failed to create user: %w", err)
+		return errors.WrapError(errors.ErrFailedToSaveUser, err)
 	}
 
 	return nil
 }
 
-// FindByEmail finds a user by email address
-func (r *userRepositoryImpl) FindByEmail(email string) (*entity.User, error) {
+// FindByEmail finds a user by email address (accepts Email VO)
+func (r *userRepositoryImpl) FindByEmail(email *valueobject.Email) (*entity.User, error) {
 	query := `
 		SELECT id, email, password_hash, full_name, created_at, updated_at
 		FROM users
@@ -60,8 +62,11 @@ func (r *userRepositoryImpl) FindByEmail(email string) (*entity.User, error) {
 		LIMIT 1
 	`
 
+	// Extract string from Email VO for database query
+	emailStr := email.String()
+
 	var userModel model.UserModel
-	err := r.db.QueryRow(query, email).Scan(
+	err := r.db.QueryRow(query, emailStr).Scan(
 		&userModel.ID,
 		&userModel.Email,
 		&userModel.PasswordHash,
@@ -72,12 +77,18 @@ func (r *userRepositoryImpl) FindByEmail(email string) (*entity.User, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("user not found")
+			return nil, errors.ErrUserNotFound
 		}
-		return nil, fmt.Errorf("failed to find user by email: %w", err)
+		return nil, errors.WrapError(errors.ErrFailedToFindUser, err)
 	}
 
-	return userModel.ToDomain(), nil
+	// Convert UserModel to User entity with value objects
+	user, err := userModel.ToDomain()
+	if err != nil {
+		return nil, errors.WrapError(errors.ErrFailedToCreateUser, err)
+	}
+
+	return user, nil
 }
 
 // FindByID finds a user by ID
@@ -101,22 +112,31 @@ func (r *userRepositoryImpl) FindByID(id uuid.UUID) (*entity.User, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("user not found")
+			return nil, errors.ErrUserNotFound
 		}
-		return nil, fmt.Errorf("failed to find user by ID: %w", err)
+		return nil, errors.WrapError(errors.ErrFailedToFindUser, err)
 	}
 
-	return userModel.ToDomain(), nil
+	// Convert UserModel to User entity with value objects
+	user, err := userModel.ToDomain()
+	if err != nil {
+		return nil, errors.WrapError(errors.ErrFailedToCreateUser, err)
+	}
+
+	return user, nil
 }
 
-// ExistsByEmail checks if a user with the given email exists
-func (r *userRepositoryImpl) ExistsByEmail(email string) (bool, error) {
+// ExistsByEmail checks if a user with the given email exists (accepts Email VO)
+func (r *userRepositoryImpl) ExistsByEmail(email *valueobject.Email) (bool, error) {
 	query := `SELECT COUNT(*) FROM users WHERE email = ?`
 
+	// Extract string from Email VO for database query
+	emailStr := email.String()
+
 	var count int
-	err := r.db.QueryRow(query, email).Scan(&count)
+	err := r.db.QueryRow(query, emailStr).Scan(&count)
 	if err != nil {
-		return false, fmt.Errorf("failed to check email existence: %w", err)
+		return false, errors.WrapError(errors.ErrFailedToCheckEmail, err)
 	}
 
 	return count > 0, nil
@@ -130,6 +150,7 @@ func (r *userRepositoryImpl) Update(user *entity.User) error {
 		WHERE id = ?
 	`
 
+	// Use FromDomainUser to extract primitives from value objects
 	userModel := model.FromDomainUser(user)
 	userModel.UpdatedAt = time.Now()
 
@@ -142,16 +163,16 @@ func (r *userRepositoryImpl) Update(user *entity.User) error {
 	)
 
 	if err != nil {
-		return fmt.Errorf("failed to update user: %w", err)
+		return errors.WrapError(errors.ErrFailedToSaveUser, err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+		return errors.WrapError(errors.ErrFailedToSaveUser, err)
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("user not found")
+		return errors.ErrUserNotFound
 	}
 
 	return nil
@@ -163,16 +184,16 @@ func (r *userRepositoryImpl) Delete(id uuid.UUID) error {
 
 	result, err := r.db.Exec(query, id)
 	if err != nil {
-		return fmt.Errorf("failed to delete user: %w", err)
+		return errors.WrapError(errors.ErrFailedToSaveUser, err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+		return errors.WrapError(errors.ErrFailedToSaveUser, err)
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("user not found")
+		return errors.ErrUserNotFound
 	}
 
 	return nil

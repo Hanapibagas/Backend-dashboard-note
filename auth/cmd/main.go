@@ -1,16 +1,15 @@
 package main
 
 import (
-	"auth/application/service"
 	appUsecase "auth/application/usecase"
 	"auth/delivery/handler"
 	"auth/delivery/middleware"
 	domainService "auth/domain/service"
-	errorHandler "auth/pkg/error"
 	"auth/infrastructure/database"
+	infraJWT "auth/infrastructure/jwt"
 	repoImpl "auth/infrastructure/repository"
 	"auth/pkg/config"
-	"auth/pkg/utils"
+	errorHandler "auth/pkg/error"
 	"fmt"
 	"log"
 	"os"
@@ -42,33 +41,28 @@ func main() {
 	refreshTokenRepo := repoImpl.NewRefreshTokenRepository()
 	log.Println("Repositories initialized")
 
-	// Initialize Utilities
-	jwtManager := utils.NewJWTManager(cfg)
-	log.Println("Utilities initialized")
-
 	// Initialize Domain Services
 	userRegistrationService := domainService.NewUserRegistrationService(userRepo)
 	log.Println("Domain services initialized")
+
+	// Initialize Infrastructure Services
+	tokenService := infraJWT.NewJWTTokenService(cfg)
+	log.Println("Infrastructure services initialized")
 
 	// Initialize Error Handler
 	errHandler := errorHandler.NewErrorHandler()
 	log.Println("Error handler initialized")
 
 	// Initialize UseCase
-	authUsecase := appUsecase.NewAuthUsecase(userRepo, refreshTokenRepo, jwtManager, userRegistrationService)
+	authUsecase := appUsecase.NewAuthUsecase(userRepo, refreshTokenRepo, tokenService, userRegistrationService)
 	log.Println("UseCase initialized")
-
-	// Initialize Service (optional - for refresh token, cleanup, etc)
-	authService := service.NewAuthService(userRepo, refreshTokenRepo, jwtManager)
-	_ = authService // Prevent unused variable warning
-	log.Println("Application services initialized")
 
 	// Initialize Handlers
 	authHandler := handler.NewAuthHandler(authUsecase, errHandler)
 	log.Println("Handlers initialized")
 
 	// Setup Gin router
-	router := setupRouter(cfg, jwtManager, authHandler)
+	router := setupRouter(cfg, tokenService, authHandler)
 
 	// Start server
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
@@ -81,13 +75,13 @@ func main() {
 }
 
 // setupRouter configures the Gin router with middleware and routes
-func setupRouter(cfg *config.Config, jwtManager *utils.JWTManager, authHandler *handler.AuthHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, tokenService domainService.ITokenService, authHandler *handler.AuthHandler) *gin.Engine {
 	router := gin.New()
 
 	// Global middleware
-	router.Use(gin.Recovery())                    // Recovery from panics
-	router.Use(gin.Logger())                       // Logger
-	router.Use(corsMiddleware())                   // CORS middleware
+	router.Use(gin.Recovery())   // Recovery from panics
+	router.Use(gin.Logger())     // Logger
+	router.Use(corsMiddleware()) // CORS middleware
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
@@ -106,12 +100,12 @@ func setupRouter(cfg *config.Config, jwtManager *utils.JWTManager, authHandler *
 		{
 			auth.POST("/register", authHandler.RegisterHandler)
 			auth.POST("/login", authHandler.LoginHandler)
-			auth.POST("/logout", middleware.NewAuthMiddleware(jwtManager).RequireAuth(), authHandler.LogoutHandler) // Protected route - requires valid JWT
+			auth.POST("/logout", middleware.NewAuthMiddleware(tokenService).RequireAuth(), authHandler.LogoutHandler) // Protected route - requires valid JWT
 		}
 
 		// Protected routes example (optional - for future use)
 		protected := api.Group("/protected")
-		protected.Use(middleware.NewAuthMiddleware(jwtManager).RequireAuth())
+		protected.Use(middleware.NewAuthMiddleware(tokenService).RequireAuth())
 		{
 			protected.GET("/profile", func(c *gin.Context) {
 				userID := middleware.GetUserID(c)

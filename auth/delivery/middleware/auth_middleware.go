@@ -3,8 +3,8 @@ package middleware
 import (
 	"strings"
 
+	"auth/domain/service"
 	"auth/pkg/response"
-	"auth/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,13 +19,13 @@ const (
 
 // AuthMiddleware represents the authentication middleware
 type AuthMiddleware struct {
-	jwtManager *utils.JWTManager
+	tokenService service.ITokenService
 }
 
 // NewAuthMiddleware creates a new authentication middleware
-func NewAuthMiddleware(jwtManager *utils.JWTManager) *AuthMiddleware {
+func NewAuthMiddleware(tokenService service.ITokenService) *AuthMiddleware {
 	return &AuthMiddleware{
-		jwtManager: jwtManager,
+		tokenService: tokenService,
 	}
 }
 
@@ -57,10 +57,10 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 		}
 
 		// Validate token
-		claims, err := m.jwtManager.ValidateToken(tokenString)
+		claims, err := m.tokenService.ValidateToken(tokenString)
 		if err != nil {
 			message := "Invalid token"
-			if err == utils.ErrExpiredToken {
+			if err.Error() == "token expired" {
 				message = "Token has expired"
 			}
 			response.Unauthorized(c, message)
@@ -120,7 +120,7 @@ func (m *AuthMiddleware) OptionalAuth() gin.HandlerFunc {
 		}
 
 		// Validate token and set context if valid
-		claims, err := m.jwtManager.ValidateToken(tokenString)
+		claims, err := m.tokenService.ValidateToken(tokenString)
 		if err == nil {
 			c.Set("user_id", claims.UserID.String())
 			c.Set("email", claims.Email)

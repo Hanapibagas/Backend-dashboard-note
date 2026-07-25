@@ -2,24 +2,30 @@ package repository
 
 import (
 	"auth/domain/entity"
+	"auth/domain/valueobject"
 
 	"github.com/google/uuid"
 )
 
 // UserRepository defines the interface for user data access operations
 // This interface will be implemented in the infrastructure layer using native SQL
+//
+// DDD: Repository interface lives in domain layer
+// Ubiquitous Language: Methods use domain concepts (Email VO)
 type UserRepository interface {
 	// Create saves a new user to the database
 	Create(user *entity.User) error
 
-	// FindByEmail finds a user by email address
-	FindByEmail(email string) (*entity.User, error)
+	// FindByEmail finds a user by email address (accepts Email VO)
+	// This is the DDD-correct approach: Repository works with domain types
+	FindByEmail(email *valueobject.Email) (*entity.User, error)
 
 	// FindByID finds a user by ID
 	FindByID(id uuid.UUID) (*entity.User, error)
 
-	// ExistsByEmail checks if a user with the given email exists
-	ExistsByEmail(email string) (bool, error)
+	// ExistsByEmail checks if a user with the given email exists (accepts Email VO)
+	// This is the DDD-correct approach: Repository works with domain types
+	ExistsByEmail(email *valueobject.Email) (bool, error)
 
 	// Update updates an existing user
 	Update(user *entity.User) error

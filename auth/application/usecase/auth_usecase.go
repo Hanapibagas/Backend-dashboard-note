@@ -1,27 +1,12 @@
 package usecase
 
 import (
+	"auth/domain/errors"
 	"auth/domain/repository"
 	"auth/domain/service"
-	"auth/pkg/utils"
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
-)
-
-var (
-	// ErrEmailAlreadyExists is returned when email is already registered
-	ErrEmailAlreadyExists = errors.New("email already exists")
-
-	// ErrInvalidCredentials is returned when email or password is incorrect
-	ErrInvalidCredentials = errors.New("invalid credentials")
-
-	// ErrUserNotFound is returned when user is not found
-	ErrUserNotFound = errors.New("user not found")
-
-	// ErrInvalidRefreshToken is returned when refresh token is invalid
-	ErrInvalidRefreshToken = errors.New("invalid refresh token")
 )
 
 // AuthUsecase defines the interface for authentication business logic
@@ -35,8 +20,8 @@ type AuthUsecase interface {
 type AuthUsecaseImpl struct {
 	userRepo                repository.UserRepository
 	refreshTokenRepo        repository.RefreshTokenRepository
-	jwtManager              *utils.JWTManager
-	userRegistrationService *service.UserRegistrationService
+	tokenService            service.ITokenService
+	userRegistrationService service.IUserRegistrationService
 }
 
 // RegisterRequest represents the registration request
@@ -91,13 +76,13 @@ type LogoutRequest struct {
 func NewAuthUsecase(
 	userRepo repository.UserRepository,
 	refreshTokenRepo repository.RefreshTokenRepository,
-	jwtManager *utils.JWTManager,
-	userRegistrationService *service.UserRegistrationService,
+	tokenService service.ITokenService,
+	userRegistrationService service.IUserRegistrationService,
 ) AuthUsecase {
 	return &AuthUsecaseImpl{
 		userRepo:                userRepo,
 		refreshTokenRepo:        refreshTokenRepo,
-		jwtManager:              jwtManager,
+		tokenService:            tokenService,
 		userRegistrationService: userRegistrationService,
 	}
 }
@@ -107,10 +92,7 @@ func (uc *AuthUsecaseImpl) Register(request *RegisterRequest) (*RegisterResponse
 	// Delegate to domain service for business logic
 	user, err := uc.userRegistrationService.RegisterUser(request.Email, request.Password, request.FullName)
 	if err != nil {
-		// Convert domain errors to usecase errors
-		if err.Error() == "email already exists" {
-			return nil, ErrEmailAlreadyExists
-		}
+		// Simply return the domain error - let the handler layer decide HTTP status
 		return nil, err
 	}
 
@@ -130,33 +112,30 @@ func (uc *AuthUsecaseImpl) Login(request *LoginRequest) (*LoginResponse, error) 
 	// Delegate to domain service for authentication
 	user, err := uc.userRegistrationService.AuthenticateUser(request.Email, request.Password)
 	if err != nil {
-		// Convert domain errors to usecase errors
-		if err.Error() == "invalid credentials" {
-			return nil, ErrInvalidCredentials
-		}
+		// Simply return the domain error - let the handler layer decide HTTP status
 		return nil, err
 	}
 
 	// Generate access token
-	accessToken, err := uc.jwtManager.GenerateAccessToken(user.GetID(), user.GetEmail())
+	accessToken, err := uc.tokenService.GenerateAccessToken(user.GetID(), user.GetEmail())
 	if err != nil {
-		return nil, errors.New("failed to generate access token")
+		return nil, errors.NewDomainError("TOKEN_GENERATION_FAILED", "failed to generate access token", err)
 	}
 
 	// Generate refresh token
-	refreshToken, err := uc.jwtManager.GenerateRefreshToken(user.GetID(), user.GetEmail())
+	refreshToken, err := uc.tokenService.GenerateRefreshToken(user.GetID(), user.GetEmail())
 	if err != nil {
-		return nil, errors.New("failed to generate refresh token")
+		return nil, errors.NewDomainError("TOKEN_GENERATION_FAILED", "failed to generate refresh token", err)
 	}
 
 	// Calculate expiry time
-	expiresIn := int64(uc.jwtManager.GetAccessTokenExpiry().Seconds())
+	expiresIn := int64(uc.tokenService.GetAccessTokenExpiry().Seconds())
 
 	// Save refresh token to database
-	expiryTime := time.Now().Add(uc.jwtManager.GetRefreshTokenExpiry())
+	expiryTime := time.Now().Add(uc.tokenService.GetRefreshTokenExpiry())
 	err = uc.refreshTokenRepo.Save(user.GetID(), refreshToken, expiryTime.Unix())
 	if err != nil {
-		return nil, errors.New("failed to save refresh token")
+		return nil, errors.NewDomainError("REFRESH_TOKEN_SAVE_FAILED", "failed to save refresh token", err)
 	}
 
 	// Prepare response
@@ -182,16 +161,15 @@ func (uc *AuthUsecaseImpl) Logout(request *LogoutRequest) error {
 	// Get user ID from request (provided by auth middleware)
 	userID, err := uuid.Parse(request.UserID)
 	if err != nil {
-		return errors.New("invalid user ID")
+		return errors.NewDomainError("INVALID_USER_ID", "invalid user ID format", err)
 	}
 
 	// Delete all refresh tokens for this user from database
 	// This invalidates all refresh tokens, forcing user to login again
 	err = uc.refreshTokenRepo.DeleteByUserID(userID)
 	if err != nil {
-		// Log error but don't fail - the access token will expire naturally
-		// This is a soft logout approach
-		return errors.New("failed to delete refresh tokens")
+		// Return error even if it fails - this is a hard logout
+		return errors.NewDomainError("REFRESH_TOKEN_DELETE_FAILED", "failed to delete refresh tokens", err)
 	}
 
 	return nil
