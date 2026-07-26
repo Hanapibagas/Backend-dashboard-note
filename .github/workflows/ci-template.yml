@@ -17,10 +17,6 @@ on:
         default: '1.23'
         description: 'Go version to use'
 
-defaults:
-  run:
-    working-directory: ./${{ inputs.service_path }}
-
 jobs:
   test:
     name: Test
@@ -38,12 +34,15 @@ jobs:
           cache-dependency-path: ${{ inputs.service_path }}/go.sum
 
       - name: Download dependencies
+        working-directory: ${{ inputs.service_path }}
         run: go mod download
 
       - name: Run tests
+        working-directory: ${{ inputs.service_path }}
         run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
       - name: Generate coverage report
+        working-directory: ${{ inputs.service_path }}
         run: go tool cover -html=coverage.out -o coverage.html
 
       - name: Upload coverage to artifact
@@ -54,6 +53,7 @@ jobs:
           retention-days: 7
 
       - name: Show coverage summary
+        working-directory: ${{ inputs.service_path }}
         run: go tool cover -func=coverage.out | grep total
 
   lint:
@@ -72,9 +72,11 @@ jobs:
           cache-dependency-path: ${{ inputs.service_path }}/go.sum
 
       - name: Run go vet
+        working-directory: ${{ inputs.service_path }}
         run: go vet ./...
 
       - name: Check go fmt
+        working-directory: ${{ inputs.service_path }}
         run: |
           if [ -n "$(gofmt -l .)" ]; then
             echo "Go code is not formatted properly. Please run 'go fmt ./...'"
@@ -83,6 +85,7 @@ jobs:
           fi
 
       - name: Run go mod tidy check
+        working-directory: ${{ inputs.service_path }}
         run: |
           go mod tidy
           if [ -n "$(git diff go.mod go.sum)" ]; then
@@ -107,12 +110,15 @@ jobs:
           cache-dependency-path: ${{ inputs.service_path }}/go.sum
 
       - name: Download dependencies
+        working-directory: ${{ inputs.service_path }}
         run: go mod download
 
       - name: Build application
+        working-directory: ${{ inputs.service_path }}
         run: go build -v -o ${{ inputs.service_name }} ./cmd/main.go
 
       - name: Verify binary exists
+        working-directory: ${{ inputs.service_path }}
         run: |
           if [ ! -f ${{ inputs.service_name }} ]; then
             echo "Binary was not created successfully"
@@ -140,4 +146,4 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: ${{ inputs.service_path }}/gosec-results.sarif
+          sarif_file: gosec-results.sarif

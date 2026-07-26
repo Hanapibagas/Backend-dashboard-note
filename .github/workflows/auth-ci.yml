@@ -18,6 +18,10 @@ on:
       - '.github/workflows/auth-ci.yml'
       - '.github/workflows/ci-template.yml'
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   call-ci-workflow:
     uses: ./.github/workflows/ci-template.yml

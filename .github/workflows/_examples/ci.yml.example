@@ -27,6 +27,11 @@ on:
       - '.github/workflows/<SERVICE_NAME>-ci.yml'
       - '.github/workflows/ci-template.yml'
 
+# Required because the ci-template's security job uploads SARIF results
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   call-ci-workflow:
     uses: ./.github/workflows/ci-template.yml

@@ -28,6 +28,12 @@ on:
       - '.github/workflows/docker-template.yml'
   workflow_dispatch:  # Allow manual trigger
 
+# Required because the docker-template's scan job uploads SARIF results
+permissions:
+  contents: read
+  security-events: write
+  packages: read
+
 jobs:
   call-docker-workflow:
     uses: ./.github/workflows/docker-template.yml

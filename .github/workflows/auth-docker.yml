@@ -19,6 +19,11 @@ on:
       - '.github/workflows/docker-template.yml'
   workflow_dispatch:  # Allow manual trigger
 
+permissions:
+  contents: read
+  security-events: write
+  packages: read
+
 jobs:
   call-docker-workflow:
     uses: ./.github/workflows/docker-template.yml
