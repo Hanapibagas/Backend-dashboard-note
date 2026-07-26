@@ -33,5 +33,5 @@ jobs:
     with:
       service_name: auth
       service_path: auth
-      docker_image: hanapi/auth-service
+      docker_image: hanapi23/auth-service
       docker_platforms: linux/amd64,linux/arm64
