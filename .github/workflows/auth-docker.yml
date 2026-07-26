@@ -5,18 +5,10 @@ on:
     branches:
       - main
       - develop
-    paths:
-      - 'auth/**'
-      - '.github/workflows/auth-docker.yml'
-      - '.github/workflows/docker-template.yml'
   pull_request:
     branches:
       - main
       - develop
-    paths:
-      - 'auth/**'
-      - '.github/workflows/auth-docker.yml'
-      - '.github/workflows/docker-template.yml'
   workflow_dispatch:  # Allow manual trigger
 
 permissions:

@@ -5,18 +5,11 @@ on:
     branches:
       - main
       - develop
-    paths:
-      - 'auth/**'
-      - '.github/workflows/auth-ci.yml'
-      - '.github/workflows/ci-template.yml'
   pull_request:
     branches:
       - main
       - develop
-    paths:
-      - 'auth/**'
-      - '.github/workflows/auth-ci.yml'
-      - '.github/workflows/ci-template.yml'
+  workflow_dispatch:  # Allow manual trigger
 
 permissions:
   contents: read
