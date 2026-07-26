@@ -1,6 +1,11 @@
 # Example Docker workflow for a new service
-# Copy this file to .github/workflows/services/<YOUR_SERVICE_NAME>/docker.yml
+# Copy this file to .github/workflows/<YOUR_SERVICE_NAME>-docker.yml
 # And replace placeholders with your actual values
+#
+# IMPORTANT: GitHub Actions only detects workflow files placed DIRECTLY in
+# .github/workflows/. Do NOT put workflow files in subdirectories — they
+# will not be picked up. See:
+# https://github.com/orgs/community/discussions/18055
 
 name: Docker - <SERVICE_NAME>
 
@@ -11,19 +16,21 @@ on:
       - develop
     paths:
       - '<SERVICE_PATH>/**'
-      - '.github/workflows/services/<SERVICE_NAME>/docker.yml'
+      - '.github/workflows/<SERVICE_NAME>-docker.yml'
+      - '.github/workflows/docker-template.yml'
   pull_request:
     branches:
       - main
       - develop
     paths:
       - '<SERVICE_PATH>/**'
-      - '.github/workflows/services/<SERVICE_NAME>/docker.yml'
+      - '.github/workflows/<SERVICE_NAME>-docker.yml'
+      - '.github/workflows/docker-template.yml'
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
   call-docker-workflow:
-    uses: ./.github/workflows/templates/docker-template.yml
+    uses: ./.github/workflows/docker-template.yml
     secrets:
       docker_hub_username: ${{ secrets.DOCKER_HUB_USERNAME }}
       docker_hub_token: ${{ secrets.DOCKER_HUB_TOKEN }}

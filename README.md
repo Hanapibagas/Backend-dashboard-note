@@ -194,17 +194,17 @@ This project uses **GitHub Actions** with **reusable workflows** for continuous 
 
 ```
 .github/workflows/
-├── templates/                    # Reusable workflow templates
-│   ├── ci-template.yml          # CI/quality checks template
-│   └── docker-template.yml      # Docker build & push template
-├── services/                     # Service-specific workflows
-│   └── auth/                    # Auth service workflows
-│       ├── ci.yml              # Calls ci-template
-│       └── docker.yml          # Calls docker-template
-└── _examples/                   # Templates for new services
+├── auth-ci.yml                  # Auth service CI (calls ci-template)
+├── auth-docker.yml              # Auth service Docker (calls docker-template)
+├── ci-template.yml              # Reusable CI/quality checks template
+├── docker-template.yml          # Reusable Docker build & push template
+└── _examples/                   # Example files for new services
     ├── ci.yml.example
     └── docker.yml.example
 ```
+
+> ⚠️ **Note**: GitHub Actions only detects workflows placed **directly** in `.github/workflows/`.
+> Workflow files in subdirectories are ignored. That's why we use a flat `<service>-ci.yml` / `<service>-docker.yml` naming convention.
 
 **CI Template** - Runs for each service:
 - ✅ Automated testing on every push & PR
@@ -256,16 +256,13 @@ For complete instructions on adding a new service, see [**ADDING_NEW_SERVICE.md*
 Quick summary for adding a new service (e.g., `product`):
 
 ```bash
-# 1. Create service workflow directory
-mkdir -p .github/workflows/services/product
-
-# 2. Copy and customize example workflows
+# 1. Copy example workflows to the root of .github/workflows/
 cp .github/workflows/_examples/ci.yml.example \
-   .github/workflows/services/product/ci.yml
+   .github/workflows/product-ci.yml
 cp .github/workflows/_examples/docker.yml.example \
-   .github/workflows/services/product/docker.yml
+   .github/workflows/product-docker.yml
 
-# 3. Edit the files and replace placeholders:
+# 2. Edit the files and replace placeholders:
 #    - <SERVICE_NAME> → product
 #    - <SERVICE_PATH> → product
 #    - <DOCKER_IMAGE_NAME> → hanapi/product-service

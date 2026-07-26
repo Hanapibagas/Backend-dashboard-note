@@ -2,22 +2,35 @@
 
 This directory contains GitHub Actions workflows for CI/CD pipelines across all services in the monorepo.
 
+> ⚠️ **IMPORTANT**: GitHub Actions **only detects workflow files placed DIRECTLY in `.github/workflows/`**.
+> Workflow files in subdirectories (e.g., `.github/workflows/services/auth/ci.yml`) will **NOT** be picked up.
+> Always place workflow `.yml` files at the root of this directory.
+> Ref: [github/community#18055](https://github.com/orgs/community/discussions/18055)
+
 ## Directory Structure
 
 ```
 .github/
 └── workflows/
-    ├── templates/              # Reusable workflow templates
-    │   ├── ci-template.yml     # CI template (test, lint, build, security)
-    │   └── docker-template.yml # Docker build & push template
-    ├── services/               # Service-specific workflows
-    │   └── auth/               # Auth service workflows
-    │       ├── ci.yml
-    │       └── docker.yml
-    └── _examples/              # Example workflows for new services
+    ├── auth-ci.yml           # Auth service CI workflow (caller)
+    ├── auth-docker.yml       # Auth service Docker workflow (caller)
+    ├── ci-template.yml       # Reusable CI template (test, lint, build, security)
+    ├── docker-template.yml   # Reusable Docker build & push template
+    └── _examples/            # Example files for new services (NOT workflows)
         ├── ci.yml.example
         └── docker.yml.example
 ```
+
+### Naming Convention
+
+Since all workflows must live at the root of `.github/workflows/`, we use a **flat naming convention** to keep things organized:
+
+| Pattern | Purpose | Example |
+|---------|---------|---------|
+| `<service>-ci.yml` | CI caller for a service | `auth-ci.yml`, `product-ci.yml` |
+| `<service>-docker.yml` | Docker caller for a service | `auth-docker.yml`, `product-docker.yml` |
+| `ci-template.yml` | Reusable CI template | (shared) |
+| `docker-template.yml` | Reusable Docker template | (shared) |
 
 ## How Templates Work
 
@@ -26,25 +39,19 @@ Reusable workflows allow you to define CI/CD logic once and reuse it across mult
 - **CI Template** (`ci-template.yml`): Runs tests, linting, build verification, and security scans
 - **Docker Template** (`docker-template.yml`): Builds and pushes multi-arch Docker images with security scanning
 
-Each service calls these templates with their specific parameters.
+Each service's caller workflow references the template via `uses:` and passes service-specific parameters.
 
 ## Adding a New Service
 
 When adding a new service (e.g., `product`, `user`, `order`), follow these steps:
 
-### 1. Create Service Workflow Directory
+### 1. Create the CI Workflow
 
-```bash
-mkdir -p .github/workflows/services/<service-name>
-```
-
-### 2. Create CI Workflow
-
-Copy and customize the example:
+Copy the example to the **root** of `.github/workflows/` with a service-specific name:
 
 ```bash
 cp .github/workflows/_examples/ci.yml.example \
-   .github/workflows/services/<service-name>/ci.yml
+   .github/workflows/<service-name>-ci.yml
 ```
 
 Edit the file and replace placeholders:
@@ -52,11 +59,11 @@ Edit the file and replace placeholders:
 - `<SERVICE_PATH>`: Path to service directory (e.g., `product`)
 - Optionally adjust `go_version` if needed
 
-### 3. Create Docker Workflow
+### 2. Create the Docker Workflow
 
 ```bash
 cp .github/workflows/_examples/docker.yml.example \
-   .github/workflows/services/<service-name>/docker.yml
+   .github/workflows/<service-name>-docker.yml
 ```
 
 Edit the file and replace placeholders:
@@ -64,31 +71,17 @@ Edit the file and replace placeholders:
 - `<SERVICE_PATH>`: Path to service directory (e.g., `product`)
 - `<DOCKER_IMAGE_NAME>`: Docker Hub image name (e.g., `hanapi/product-service`)
 
-### 4. Commit and Push
+### 3. Commit and Push
 
 ```bash
-git add .github/workflows/services/<service-name>/
+git add .github/workflows/<service-name>-ci.yml .github/workflows/<service-name>-docker.yml
 git commit -m "feat: add CI/CD workflows for <service-name> service"
 git push origin main
 ```
 
 ## Example: Adding a Product Service
 
-Here's a complete example for adding a `product` service:
-
-### Directory Structure
-
-```
-product/
-├── cmd/
-│   └── main.go
-├── domain/
-├── application/
-├── infrastructure/
-└── go.mod
-```
-
-### CI Workflow: `.github/workflows/services/product/ci.yml`
+### CI Workflow: `.github/workflows/product-ci.yml`
 
 ```yaml
 name: CI - Product Service
@@ -96,21 +89,27 @@ name: CI - Product Service
 on:
   push:
     branches: [main, develop]
-    paths: ['product/**']
+    paths:
+      - 'product/**'
+      - '.github/workflows/product-ci.yml'
+      - '.github/workflows/ci-template.yml'
   pull_request:
     branches: [main, develop]
-    paths: ['product/**']
+    paths:
+      - 'product/**'
+      - '.github/workflows/product-ci.yml'
+      - '.github/workflows/ci-template.yml'
 
 jobs:
   call-ci-workflow:
-    uses: ./.github/workflows/templates/ci-template.yml
+    uses: ./.github/workflows/ci-template.yml
     with:
       service_name: product
       service_path: product
       go_version: '1.23'
 ```
 
-### Docker Workflow: `.github/workflows/services/product/docker.yml`
+### Docker Workflow: `.github/workflows/product-docker.yml`
 
 ```yaml
 name: Docker - Product Service
@@ -118,15 +117,21 @@ name: Docker - Product Service
 on:
   push:
     branches: [main, develop]
-    paths: ['product/**']
+    paths:
+      - 'product/**'
+      - '.github/workflows/product-docker.yml'
+      - '.github/workflows/docker-template.yml'
   pull_request:
     branches: [main, develop]
-    paths: ['product/**']
+    paths:
+      - 'product/**'
+      - '.github/workflows/product-docker.yml'
+      - '.github/workflows/docker-template.yml'
   workflow_dispatch:
 
 jobs:
   call-docker-workflow:
-    uses: ./.github/workflows/templates/docker-template.yml
+    uses: ./.github/workflows/docker-template.yml
     secrets:
       docker_hub_username: ${{ secrets.DOCKER_HUB_USERNAME }}
       docker_hub_token: ${{ secrets.DOCKER_HUB_TOKEN }}
@@ -142,18 +147,18 @@ jobs:
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
-| `service_name` | ✅ | - | Service name (used for artifacts) |
-| `service_path` | ✅ | - | Path to service directory |
-| `go_version` | ❌ | `1.23` | Go version to use |
+| `service_name` | Yes | - | Service name (used for artifacts) |
+| `service_path` | Yes | - | Path to service directory |
+| `go_version` | No | `1.23` | Go version to use |
 
 ### Docker Template Parameters
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
-| `service_name` | ✅ | - | Service name |
-| `service_path` | ✅ | - | Path to service directory |
-| `docker_image` | ✅ | - | Docker Hub image name |
-| `docker_platforms` | ❌ | `linux/amd64,linux/arm64` | Target platforms |
+| `service_name` | Yes | - | Service name |
+| `service_path` | Yes | - | Path to service directory |
+| `docker_image` | Yes | - | Docker Hub image name |
+| `docker_platforms` | No | `linux/amd64,linux/arm64` | Target platforms |
 
 ## Required GitHub Secrets
 
@@ -167,32 +172,34 @@ Set these in: `Settings` → `Secrets and variables` → `Actions`
 ## Workflow Features
 
 ### CI Template Includes:
-- ✅ Automated testing with race detection
-- ✅ Code quality checks (go vet, go fmt, go mod tidy)
-- ✅ Build verification
-- ✅ Security scanning with Gosec
-- ✅ Coverage report generation
+- Automated testing with race detection
+- Code quality checks (go vet, go fmt, go mod tidy)
+- Build verification
+- Security scanning with Gosec
+- Coverage report generation
 
 ### Docker Template Includes:
-- ✅ Multi-architecture builds (AMD64 & ARM64)
-- ✅ Automated pushes to Docker Hub
-- ✅ Container security scanning with Trivy
-- ✅ Layer caching for faster builds
-- ✅ Smart image tagging
+- Multi-architecture builds (AMD64 & ARM64)
+- Automated pushes to Docker Hub
+- Container security scanning with Trivy
+- Layer caching for faster builds
+- Smart image tagging
 
 ## Troubleshooting
 
-### Workflow Not Triggering
+### Workflow Not Triggering / Not Showing in Actions Tab
 
 Check that:
-1. File path filters match your service directory
-2. Workflow files are in the correct location
-3. File names are exactly `ci.yml` and `docker.yml`
+1. Workflow `.yml` files are placed **directly** in `.github/workflows/` (NOT in subdirectories)
+2. Workflows are on the **default branch** (`main`)
+3. GitHub Actions is enabled: `Settings → Actions → General → Allow all actions`
+4. File path filters match your service directory
+5. At least one file matching the `paths:` filter was changed in the commit
 
 ### Docker Push Fails
 
 Check that:
-1. GitHub secrets are correctly set
+1. GitHub secrets are correctly set (`DOCKER_HUB_USERNAME`, `DOCKER_HUB_TOKEN`)
 2. Docker Hub token has Read & Write permissions
 3. Docker image name is correct
 
@@ -205,7 +212,7 @@ Check that:
 
 ## Current Services
 
-| Service | Directory | Docker Image | Status |
-|---------|-----------|--------------|--------|
-| Auth | `auth/` | `hanapi/auth-service` | ✅ Active |
-| (Add more here as you create them) | | | |
+| Service | Directory | CI Workflow | Docker Workflow | Docker Image | Status |
+|---------|-----------|-------------|-----------------|--------------|--------|
+| Auth | `auth/` | `auth-ci.yml` | `auth-docker.yml` | `hanapi/auth-service` | Active |
+| (Add more here as you create them) | | | | | |

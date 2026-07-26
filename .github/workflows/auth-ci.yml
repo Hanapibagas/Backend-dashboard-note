@@ -7,18 +7,20 @@ on:
       - develop
     paths:
       - 'auth/**'
-      - '.github/workflows/services/auth/ci.yml'
+      - '.github/workflows/auth-ci.yml'
+      - '.github/workflows/ci-template.yml'
   pull_request:
     branches:
       - main
       - develop
     paths:
       - 'auth/**'
-      - '.github/workflows/services/auth/ci.yml'
+      - '.github/workflows/auth-ci.yml'
+      - '.github/workflows/ci-template.yml'
 
 jobs:
   call-ci-workflow:
-    uses: ./.github/workflows/templates/ci-template.yml
+    uses: ./.github/workflows/ci-template.yml
     with:
       service_name: auth
       service_path: auth

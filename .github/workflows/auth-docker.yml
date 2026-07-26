@@ -7,19 +7,21 @@ on:
       - develop
     paths:
       - 'auth/**'
-      - '.github/workflows/services/auth/docker.yml'
+      - '.github/workflows/auth-docker.yml'
+      - '.github/workflows/docker-template.yml'
   pull_request:
     branches:
       - main
       - develop
     paths:
       - 'auth/**'
-      - '.github/workflows/services/auth/docker.yml'
+      - '.github/workflows/auth-docker.yml'
+      - '.github/workflows/docker-template.yml'
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
   call-docker-workflow:
-    uses: ./.github/workflows/templates/docker-template.yml
+    uses: ./.github/workflows/docker-template.yml
     secrets:
       docker_hub_username: ${{ secrets.DOCKER_HUB_USERNAME }}
       docker_hub_token: ${{ secrets.DOCKER_HUB_TOKEN }}

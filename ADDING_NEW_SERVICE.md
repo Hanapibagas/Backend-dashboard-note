@@ -260,16 +260,16 @@ Edit the Dockerfile if your service has specific requirements.
 
 ### Step 4: Setup CI/CD Workflows
 
-#### 4.1 Create Service Workflow Directory
+#### 4.1 Naming Convention (no subdirectory needed)
 
-```bash
-mkdir -p .github/workflows/services/<service-name>
-```
+> ⚠️ GitHub Actions **only detects workflows placed DIRECTLY in `.github/workflows/`**.
+> Do NOT create subdirectories like `.github/workflows/services/<service-name>/` —
+> workflows there will be silently ignored.
+> Ref: [github/community#18055](https://github.com/orgs/community/discussions/18055)
 
-Example:
-```bash
-mkdir -p .github/workflows/services/product
-```
+Workflow files use a **flat naming convention**:
+- `<service-name>-ci.yml` — CI workflow
+- `<service-name>-docker.yml` — Docker workflow
 
 #### 4.2 Create CI Workflow
 
@@ -277,7 +277,7 @@ Copy and customize the example:
 
 ```bash
 cp .github/workflows/_examples/ci.yml.example \
-   .github/workflows/services/<service-name>/ci.yml
+   .github/workflows/<service-name>-ci.yml
 ```
 
 Edit the file and replace placeholders:
@@ -292,18 +292,18 @@ on:
       - develop
     paths:
       - '<SERVICE_PATH>/**'
-      - '.github/workflows/services/<SERVICE_NAME>/ci.yml'
+      - '.github/workflows/<SERVICE_NAME>-ci.yml'
   pull_request:
     branches:
       - main
       - develop
     paths:
       - '<SERVICE_PATH>/**'
-      - '.github/workflows/services/<SERVICE_NAME>/ci.yml'
+      - '.github/workflows/<SERVICE_NAME>-ci.yml'
 
 jobs:
   call-ci-workflow:
-    uses: ./.github/workflows/templates/ci-template.yml
+    uses: ./.github/workflows/ci-template.yml
     with:
       service_name: <SERVICE_NAME>
       service_path: <SERVICE_PATH>
@@ -318,7 +318,7 @@ jobs:
 
 ```bash
 cp .github/workflows/_examples/docker.yml.example \
-   .github/workflows/services/<service-name>/docker.yml
+   .github/workflows/<service-name>-docker.yml
 ```
 
 Edit the file and replace placeholders:
@@ -333,19 +333,19 @@ on:
       - develop
     paths:
       - '<SERVICE_PATH>/**'
-      - '.github/workflows/services/<SERVICE_NAME>/docker.yml'
+      - '.github/workflows/<SERVICE_NAME>-docker.yml'
   pull_request:
     branches:
       - main
       - develop
     paths:
       - '<SERVICE_PATH>/**'
-      - '.github/workflows/services/<SERVICE_NAME>/docker.yml'
+      - '.github/workflows/<SERVICE_NAME>-docker.yml'
   workflow_dispatch:
 
 jobs:
   call-docker-workflow:
-    uses: ./.github/workflows/templates/docker-template.yml
+    uses: ./.github/workflows/docker-template.yml
     secrets:
       docker_hub_username: ${{ secrets.DOCKER_HUB_USERNAME }}
       docker_hub_token: ${{ secrets.DOCKER_HUB_TOKEN }}
@@ -420,8 +420,8 @@ git diff go.mod go.sum  # Should be empty
 git status
 
 # Review workflow files
-cat .github/workflows/services/<service-name>/ci.yml
-cat .github/workflows/services/<service-name>/docker.yml
+cat .github/workflows/<service-name>-ci.yml
+cat .github/workflows/<service-name>-docker.yml
 ```
 
 #### 6.2 Commit Changes
@@ -479,13 +479,11 @@ product/
 
 .github/
 └── workflows/
-    └── services/
-        └── product/
-            ├── ci.yml
-            └── docker.yml
+    ├── product-ci.yml        # Product CI workflow
+    └── product-docker.yml    # Product Docker workflow
 ```
 
-### CI Workflow: `.github/workflows/services/product/ci.yml`
+### CI Workflow: `.github/workflows/product-ci.yml`
 
 ```yaml
 name: CI - Product Service
@@ -497,25 +495,25 @@ on:
       - develop
     paths:
       - 'product/**'
-      - '.github/workflows/services/product/ci.yml'
+      - '.github/workflows/product-ci.yml'
   pull_request:
     branches:
       - main
       - develop
     paths:
       - 'product/**'
-      - '.github/workflows/services/product/ci.yml'
+      - '.github/workflows/product-ci.yml'
 
 jobs:
   call-ci-workflow:
-    uses: ./.github/workflows/templates/ci-template.yml
+    uses: ./.github/workflows/ci-template.yml
     with:
       service_name: product
       service_path: product
       go_version: '1.23'
 ```
 
-### Docker Workflow: `.github/workflows/services/product/docker.yml`
+### Docker Workflow: `.github/workflows/product-docker.yml`
 
 ```yaml
 name: Docker - Product Service
@@ -527,19 +525,19 @@ on:
       - develop
     paths:
       - 'product/**'
-      - '.github/workflows/services/product/docker.yml'
+      - '.github/workflows/product-docker.yml'
   pull_request:
     branches:
       - main
       - develop
     paths:
       - 'product/**'
-      - '.github/workflows/services/product/docker.yml'
+      - '.github/workflows/product-docker.yml'
   workflow_dispatch:
 
 jobs:
   call-docker-workflow:
-    uses: ./.github/workflows/templates/docker-template.yml
+    uses: ./.github/workflows/docker-template.yml
     secrets:
       docker_hub_username: ${{ secrets.DOCKER_HUB_USERNAME }}
       docker_hub_token: ${{ secrets.DOCKER_HUB_TOKEN }}
@@ -581,8 +579,8 @@ After pushing to GitHub:
 
 **Solutions**:
 1. Check file paths in workflow triggers match your directory structure
-2. Ensure workflow files are in correct location: `.github/workflows/services/<service-name>/`
-3. Verify workflow files are named exactly `ci.yml` and `docker.yml`
+2. Ensure workflow files are placed **directly** in `.github/workflows/` (NOT in subdirectories — GitHub Actions does not scan subfolders)
+3. Verify workflow files are named `<service>-ci.yml` and `<service>-docker.yml`
 4. Check workflow syntax is correct (GitHub will show syntax errors)
 
 ### Docker Build Fails
@@ -715,8 +713,8 @@ Use this checklist before committing a new service:
 - [ ] Tests exist and pass (`go test ./...`)
 - [ ] Dockerfile created and works locally
 - [ ] `.dockerignore` created
-- [ ] CI workflow created (`.github/workflows/services/<service>/ci.yml`)
-- [ ] Docker workflow created (`.github/workflows/services/<service>/docker.yml`)
+- [ ] CI workflow created (`.github/workflows/<service>-ci.yml`)
+- [ ] Docker workflow created (`.github/workflows/<service>-docker.yml`)
 - [ ] All placeholders replaced in workflows
 - [ ] Docker image name is correct
 - [ ] Documentation updated (README.md)
