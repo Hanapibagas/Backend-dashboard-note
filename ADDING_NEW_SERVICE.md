@@ -67,12 +67,12 @@ cd product
 #### 2.1 Initialize Go Module
 
 ```bash
-go mod init github.com/hanapi/<service-name>
+go mod init github.com/hanapi23/<service-name>
 ```
 
 Example:
 ```bash
-go mod init github.com/hanapi/product
+go mod init github.com/hanapi23/product
 ```
 
 #### 2.2 Create Service Structure
@@ -359,7 +359,7 @@ jobs:
 **Replace:**
 - `<SERVICE_NAME>`: Your service name (e.g., `Product Service`)
 - `<SERVICE_PATH>`: Path to service (e.g., `product`)
-- `<DOCKER_IMAGE_NAME>`: Docker Hub image name (e.g., `hanapi/product-service`)
+- `<DOCKER_IMAGE_NAME>`: Docker Hub image name (e.g., `hanapi23/product-service`)
 
 ---
 
@@ -544,7 +544,7 @@ jobs:
     with:
       service_name: product
       service_path: product
-      docker_image: hanapi/product-service
+      docker_image: hanapi23/product-service
       docker_platforms: linux/amd64,linux/arm64
 ```
 
@@ -560,14 +560,14 @@ After pushing to GitHub:
 
 ✅ **Docker Workflow** will:
 - Build multi-architecture Docker images (AMD64 & ARM64)
-- Push images to Docker Hub: `hanapi/product-service`
+- Push images to Docker Hub: `hanapi23/product-service`
 - Run container security scanning with Trivy
 
 ✅ **Docker Images Available**:
-- `hanapi/product-service:latest` (main branch)
-- `hanapi/product-service:develop` (develop branch)
-- `hanapi/product-service:main-<sha>` (specific commits)
-- `hanapi/product-service:pr-<number>` (pull requests)
+- `hanapi23/product-service:latest` (main branch)
+- `hanapi23/product-service:develop` (develop branch)
+- `hanapi23/product-service:main-<sha>` (specific commits)
+- `hanapi23/product-service:pr-<number>` (pull requests)
 
 ---
 
@@ -653,9 +653,9 @@ Follow this pattern:
 ```
 
 Examples:
-- `hanapi/product-service`
-- `hanapi/user-service`
-- `hanapi/order-service`
+- `hanapi23/product-service`
+- `hanapi23/user-service`
+- `hanapi23/order-service`
 
 ### 3. Service Structure
 

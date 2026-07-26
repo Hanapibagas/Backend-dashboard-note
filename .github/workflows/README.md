@@ -69,7 +69,7 @@ cp .github/workflows/_examples/docker.yml.example \
 Edit the file and replace placeholders:
 - `<SERVICE_NAME>`: Service name (e.g., `product`)
 - `<SERVICE_PATH>`: Path to service directory (e.g., `product`)
-- `<DOCKER_IMAGE_NAME>`: Docker Hub image name (e.g., `hanapi/product-service`)
+- `<DOCKER_IMAGE_NAME>`: Docker Hub image name (e.g., `hanapi23/product-service`)
 
 ### 3. Commit and Push
 
@@ -138,7 +138,7 @@ jobs:
     with:
       service_name: product
       service_path: product
-      docker_image: hanapi/product-service
+      docker_image: hanapi23/product-service
 ```
 
 ## Workflow Parameters
@@ -214,5 +214,5 @@ Check that:
 
 | Service | Directory | CI Workflow | Docker Workflow | Docker Image | Status |
 |---------|-----------|-------------|-----------------|--------------|--------|
-| Auth | `auth/` | `auth-ci.yml` | `auth-docker.yml` | `hanapi/auth-service` | Active |
+| Auth | `auth/` | `auth-ci.yml` | `auth-docker.yml` | `hanapi23/auth-service` | Active |
 | (Add more here as you create them) | | | | | |

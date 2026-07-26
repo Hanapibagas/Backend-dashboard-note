@@ -232,7 +232,7 @@ Add these secrets to your GitHub repository (`Settings` → `Secrets and variabl
 
 | Secret Name | Description | Example |
 |-------------|-------------|---------|
-| `DOCKER_HUB_USERNAME` | Your Docker Hub username | `hanapi` |
+| `DOCKER_HUB_USERNAME` | Your Docker Hub username | `hanapi23` |
 | `DOCKER_HUB_TOKEN` | Docker Hub access token | `dckr_xxxxx...` |
 
 To create a Docker Hub token:
@@ -265,7 +265,7 @@ cp .github/workflows/_examples/docker.yml.example \
 # 2. Edit the files and replace placeholders:
 #    - <SERVICE_NAME> → product
 #    - <SERVICE_PATH> → product
-#    - <DOCKER_IMAGE_NAME> → hanapi/product-service
+#    - <DOCKER_IMAGE_NAME> → hanapi23/product-service
 ```
 
 See [`.github/workflows/README.md`](.github/workflows/README.md) for workflow architecture details.
@@ -273,10 +273,10 @@ See [`.github/workflows/README.md`](.github/workflows/README.md) for workflow ar
 #### Docker Image Naming
 
 Images are tagged as:
-- `hanapi/auth-service:latest` (main branch only)
-- `hanapi/auth-service:develop` (develop branch)
-- `hanapi/auth-service:main-<sha>` (specific commits)
-- `hanapi/auth-service:pr-<number>` (pull requests)
+- `hanapi23/auth-service:latest` (main branch only)
+- `hanapi23/auth-service:develop` (develop branch)
+- `hanapi23/auth-service:main-<sha>` (specific commits)
+- `hanapi23/auth-service:pr-<number>` (pull requests)
 
 #### Pipeline Status
 
@@ -296,8 +296,8 @@ go vet ./...
 go fmt ./...
 
 # Build Docker image locally
-docker build -t hanapi/auth-service:latest .
-docker run -p 8080:8080 --env-file cmd/.env hanapi/auth-service:latest
+docker build -t hanapi23/auth-service:latest .
+docker run -p 8080:8080 --env-file cmd/.env hanapi23/auth-service:latest
 ```
 
 ### 📖 Documentation

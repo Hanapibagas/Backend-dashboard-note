@@ -14,7 +14,7 @@ on:
       docker_image:
         required: true
         type: string
-        description: 'Docker image name (e.g., hanapi/auth-service)'
+        description: 'Docker image name (e.g., hanapi23/auth-service)'
       docker_platforms:
         required: false
         type: string

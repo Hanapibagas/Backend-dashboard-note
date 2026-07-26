@@ -44,5 +44,5 @@ jobs:
       # Replace these values with your service-specific values
       service_name: <SERVICE_NAME>              # e.g., product, user, order
       service_path: <SERVICE_PATH>             # e.g., product, user, order
-      docker_image: <DOCKER_IMAGE_NAME>       # e.g., hanapi/product-service
+      docker_image: <DOCKER_IMAGE_NAME>       # e.g., hanapi23/product-service
       docker_platforms: linux/amd64,linux/arm64 # Platforms (optional)
