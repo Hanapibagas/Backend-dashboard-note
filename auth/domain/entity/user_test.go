@@ -311,24 +311,24 @@ func TestUser_UpdateFullName(t *testing.T) {
 // Test UpdatePassword Method - Positive Cases
 func TestUser_UpdatePassword_Success(t *testing.T) {
 	tests := []struct {
-		name         string
-		initialPass  string
-		newPassword  string
+		name        string
+		initialPass string
+		newPassword string
 	}{
 		{
-			name:         "update to valid password",
-			initialPass:  "OldPassword123",
-			newPassword:  "NewPassword123",
+			name:        "update to valid password",
+			initialPass: "OldPassword123",
+			newPassword: "NewPassword123",
 		},
 		{
-			name:         "update to password with special chars",
-			initialPass:  "Password123",
-			newPassword:  "N3wP@ssw0rd!",
+			name:        "update to password with special chars",
+			initialPass: "Password123",
+			newPassword: "N3wP@ssw0rd!",
 		},
 		{
-			name:         "update to longer password",
-			initialPass:  "Pass1234",
-			newPassword:  "ThisIsAVeryLongPassword123!",
+			name:        "update to longer password",
+			initialPass: "Pass1234",
+			newPassword: "ThisIsAVeryLongPassword123!",
 		},
 	}
 

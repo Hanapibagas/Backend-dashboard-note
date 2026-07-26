@@ -1,0 +1,25 @@
+name: CI - Auth Service
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'auth/**'
+      - '.github/workflows/services/auth/ci.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'auth/**'
+      - '.github/workflows/services/auth/ci.yml'
+
+jobs:
+  call-ci-workflow:
+    uses: ./.github/workflows/templates/ci-template.yml
+    with:
+      service_name: auth
+      service_path: auth
+      go_version: '1.23'

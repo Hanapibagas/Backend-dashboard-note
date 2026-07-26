@@ -188,22 +188,41 @@ docker run -p 8080:8080 --env-file cmd/.env auth-service
 
 ### 🔄 CI/CD Pipeline
 
-This project uses **GitHub Actions** for continuous integration and continuous deployment.
+This project uses **GitHub Actions** with **reusable workflows** for continuous integration and continuous deployment.
 
-#### Pipeline Overview
+#### Pipeline Architecture
 
-**CI Workflow** `.github/workflows/ci.yml`
+```
+.github/workflows/
+├── templates/                    # Reusable workflow templates
+│   ├── ci-template.yml          # CI/quality checks template
+│   └── docker-template.yml      # Docker build & push template
+├── services/                     # Service-specific workflows
+│   └── auth/                    # Auth service workflows
+│       ├── ci.yml              # Calls ci-template
+│       └── docker.yml          # Calls docker-template
+└── _examples/                   # Templates for new services
+    ├── ci.yml.example
+    └── docker.yml.example
+```
+
+**CI Template** - Runs for each service:
 - ✅ Automated testing on every push & PR
 - ✅ Code quality checks (go vet, go fmt, go mod tidy)
 - ✅ Build verification
 - ✅ Security scanning with Gosec
 - ✅ Coverage report generation
 
-**Docker Workflow** `.github/workflows/docker-build-push.yml`
+**Docker Template** - Runs for each service:
 - ✅ Multi-architecture Docker builds (linux/amd64, linux/arm64)
 - ✅ Automated pushes to Docker Hub
 - ✅ Container security scanning with Trivy
 - ✅ Layer caching for faster builds
+
+**Reusable Design** - Templates sekali, gunakan untuk semua services:
+- Setiap service punya workflow sendiri yang call template
+- Independent pipeline execution (service A tidak affect service B)
+- Mudah tambah service baru
 
 #### Setup Instructions
 
@@ -230,7 +249,31 @@ The CI/CD pipelines run automatically on:
 - Pull requests to `main` or `develop` branches
 - Manual trigger via GitHub Actions UI
 
-**3. Docker Image Naming**
+**3. Adding New Services**
+
+For complete instructions on adding a new service, see [**ADDING_NEW_SERVICE.md**](ADDING_NEW_SERVICE.md).
+
+Quick summary for adding a new service (e.g., `product`):
+
+```bash
+# 1. Create service workflow directory
+mkdir -p .github/workflows/services/product
+
+# 2. Copy and customize example workflows
+cp .github/workflows/_examples/ci.yml.example \
+   .github/workflows/services/product/ci.yml
+cp .github/workflows/_examples/docker.yml.example \
+   .github/workflows/services/product/docker.yml
+
+# 3. Edit the files and replace placeholders:
+#    - <SERVICE_NAME> → product
+#    - <SERVICE_PATH> → product
+#    - <DOCKER_IMAGE_NAME> → hanapi/product-service
+```
+
+See [`.github/workflows/README.md`](.github/workflows/README.md) for workflow architecture details.
+
+#### Docker Image Naming
 
 Images are tagged as:
 - `hanapi/auth-service:latest` (main branch only)
@@ -262,7 +305,9 @@ docker run -p 8080:8080 --env-file cmd/.env hanapi/auth-service:latest
 
 ### 📖 Documentation
 
-For complete documentation, see [auth/README.md](auth/README.md)
+- [Auth Service Documentation](auth/README.md) - Complete auth service guide
+- [Adding New Service Guide](ADDING_NEW_SERVICE.md) - How to add new microservices
+- [GitHub Workflows Documentation](.github/workflows/README.md) - CI/CD workflows explained
 
 ---
 

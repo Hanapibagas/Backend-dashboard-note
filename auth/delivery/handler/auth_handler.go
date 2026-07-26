@@ -12,23 +12,23 @@ import (
 // SRP: Handler only handles HTTP concerns (binding, response formatting)
 type AuthHandler struct {
 	authUsecase usecase.AuthUsecase
-	errHandler *errorHandler.ErrorHandler
+	errHandler  *errorHandler.ErrorHandler
 }
 
 // NewAuthHandler creates a new AuthHandler instance
 func NewAuthHandler(authUsecase usecase.AuthUsecase, errHandler *errorHandler.ErrorHandler) *AuthHandler {
 	return &AuthHandler{
 		authUsecase: authUsecase,
-		errHandler: errHandler,
+		errHandler:  errHandler,
 	}
 }
 
 // RegisterRequest represents the HTTP request body for registration
 // SRP: This struct only handles HTTP binding (basic format validation)
 type RegisterRequest struct {
-	Email    string `json:"email" binding:"required"`             // Basic: required field
-	Password string `json:"password" binding:"required"`          // Basic: required field
-	FullName string `json:"full_name" binding:"required"`          // Basic: required field
+	Email    string `json:"email" binding:"required"`     // Basic: required field
+	Password string `json:"password" binding:"required"`  // Basic: required field
+	FullName string `json:"full_name" binding:"required"` // Basic: required field
 }
 
 // LoginRequest represents the HTTP request body for login

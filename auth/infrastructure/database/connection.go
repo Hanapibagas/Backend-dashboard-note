@@ -29,8 +29,8 @@ func InitDB(cfg *config.Config) error {
 	}
 
 	// Set connection pool settings
-	db.SetMaxOpenConns(25)                  // Maximum number of open connections
-	db.SetMaxIdleConns(25)                  // Maximum number of idle connections
+	db.SetMaxOpenConns(25)                 // Maximum number of open connections
+	db.SetMaxIdleConns(25)                 // Maximum number of idle connections
 	db.SetConnMaxLifetime(5 * time.Minute) // Maximum lifetime of a connection
 
 	DB = db

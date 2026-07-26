@@ -74,10 +74,10 @@ func TestWrapError(t *testing.T) {
 
 func TestPredefinedErrors(t *testing.T) {
 	tests := []struct {
-		name  string
-		err   *DomainError
-		code  string
-		msg   string
+		name string
+		err  *DomainError
+		code string
+		msg  string
 	}{
 		{"ErrEmailAlreadyExists", ErrEmailAlreadyExists, "EMAIL_ALREADY_EXISTS", "email already exists"},
 		{"ErrUserNotFound", ErrUserNotFound, "USER_NOT_FOUND", "user not found"},

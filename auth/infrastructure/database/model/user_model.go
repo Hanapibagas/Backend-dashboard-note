@@ -95,7 +95,7 @@ func (um *UserModel) ToDomainSimple() *entity.User {
 func FromDomainUser(user *entity.User) UserModel {
 	// Extract primitives from value objects for database storage
 	// This is the infrastructure layer's responsibility: adapt domain to persistence
-	emailStr := user.GetEmail()              // Email VO → string
+	emailStr := user.GetEmail()               // Email VO → string
 	passwordHashStr := user.GetPasswordHash() // HashedPassword VO → string
 
 	return UserModel{

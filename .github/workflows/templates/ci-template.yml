@@ -1,24 +1,25 @@
-name: CI - Auth Service
+name: Reusable CI Workflow
 
 on:
-  push:
-    branches:
-      - main
-      - develop
-    paths:
-      - 'auth/**'
-      - '.github/workflows/ci.yml'
-  pull_request:
-    branches:
-      - main
-      - develop
-    paths:
-      - 'auth/**'
-      - '.github/workflows/ci.yml'
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+        description: 'Service name (e.g., auth, product, user)'
+      service_path:
+        required: true
+        type: string
+        description: 'Path to service directory (e.g., auth, product)'
+      go_version:
+        required: false
+        type: string
+        default: '1.23'
+        description: 'Go version to use'
 
 defaults:
   run:
-    working-directory: auth
+    working-directory: ./${{ inputs.service_path }}
 
 jobs:
   test:
@@ -32,9 +33,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: ${{ inputs.go_version }}
           cache: true
-          cache-dependency-path: auth/go.sum
+          cache-dependency-path: ${{ inputs.service_path }}/go.sum
 
       - name: Download dependencies
         run: go mod download
@@ -48,8 +49,8 @@ jobs:
       - name: Upload coverage to artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: auth/coverage.html
+          name: ${{ inputs.service_name }}-coverage-report
+          path: ${{ inputs.service_path }}/coverage.html
           retention-days: 7
 
       - name: Show coverage summary
@@ -66,9 +67,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: ${{ inputs.go_version }}
           cache: true
-          cache-dependency-path: auth/go.sum
+          cache-dependency-path: ${{ inputs.service_path }}/go.sum
 
       - name: Run go vet
         run: go vet ./...
@@ -96,44 +97,47 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: ${{ inputs.go_version }}
           cache: true
-          cache-dependency-path: auth/go.sum
+          cache-dependency-path: ${{ inputs.service_path }}/go.sum
 
       - name: Download dependencies
         run: go mod download
 
       - name: Build application
-        run: go build -v -o auth ./cmd/main.go
+        run: go build -v -o ${{ inputs.service_name }} ./cmd/main.go
 
       - name: Verify binary exists
         run: |
-          if [ ! -f auth ]; then
+          if [ ! -f ${{ inputs.service_name }} ]; then
             echo "Binary was not created successfully"
             exit 1
           fi
-          ls -lh auth
+          ls -lh ${{ inputs.service_name }}
 
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
+        uses: securego/gosec@v2.28.0
         with:
-          args: '-no-fail -fmt sarif -out gosec-results.sarif ./auth/...'
+          args: '-no-fail -fmt sarif -out gosec-results.sarif ./${{ inputs.service_path }}/...'
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: gosec-results.sarif
+          sarif_file: ${{ inputs.service_path }}/gosec-results.sarif

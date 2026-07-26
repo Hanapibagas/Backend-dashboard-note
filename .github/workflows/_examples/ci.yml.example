@@ -1,0 +1,30 @@
+# Example CI workflow for a new service
+# Copy this file to .github/workflows/services/<YOUR_SERVICE_NAME>/ci.yml
+# And replace placeholders with your actual values
+
+name: CI - <SERVICE_NAME>
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - '<SERVICE_PATH>/**'
+      - '.github/workflows/services/<SERVICE_NAME>/ci.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - '<SERVICE_PATH>/**'
+      - '.github/workflows/services/<SERVICE_NAME>/ci.yml'
+
+jobs:
+  call-ci-workflow:
+    uses: ./.github/workflows/templates/ci-template.yml
+    with:
+      # Replace these values with your service-specific values
+      service_name: <SERVICE_NAME>              # e.g., product, user, order
+      service_path: <SERVICE_PATH>             # e.g., product, user, order
+      go_version: '1.23'                       # Go version (optional, defaults to 1.23)
